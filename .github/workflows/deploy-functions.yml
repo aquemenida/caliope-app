@@ -31,14 +31,10 @@ jobs:
         run: npm ci
         working-directory: ./functions
 
-      - name: Set up Firebase Service Account
-        run: echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" > ./service-account.json
-        shell: bash
-
       - name: Deploy to Firebase
         uses: w9jds/firebase-action@master
         with:
           args: deploy --only functions
         env:
           PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          GOOGLE_APPLICATION_CREDENTIALS: ./service-account.json
+          GCP_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
