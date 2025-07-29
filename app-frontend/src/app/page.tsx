@@ -1,13 +1,36 @@
 "use client";
-import { useState, useCallback } from 'react';
-import { functions } from '../../firebase/firebase';
+import { useState, useCallback, useEffect } from 'react';
+import { functions, auth } from '../../firebase/firebase';
 import { httpsCallable } from 'firebase/functions';
+import { onAuthStateChanged, User } from 'firebase/auth';
+
+// This function takes the original Google profile image URL and proxies it through our Cloud Function.
+// This is necessary to prevent modern browsers' tracking prevention from blocking the image.
+const getProxiedImageUrl = (url: string | null): string => {
+  if (!url) {
+    // Return a path to a default placeholder image if the user has no photo
+    return '/default-avatar.png'; 
+  }
+  // The base URL of your image proxy Cloud Function
+  const proxyBaseUrl = 'https://us-central1-caliope-app-3.cloudfunctions.net/imageProxy';
+  return `${proxyBaseUrl}?url=${encodeURIComponent(url)}`;
+};
 
 export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
   const [userInput, setUserInput] = useState('');
   const [recommendations, setRecommendations] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Listen for changes in authentication state (e.g., user logs in or out)
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
+  }, []);
 
   const generateRecommendations = useCallback(async () => {
         setLoading(true);
@@ -36,7 +59,7 @@ export default function Home() {
           <div className="@[480px]:px-4 @[480px]:py-3">
             <div
               className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden bg-[#f8fcfa] @[480px]:rounded-xl min-h-80"
-              style={{ backgroundImage: `url(${getProxiedImageUrl(user.photoURL)})` }}
+              style={{ backgroundImage: `url(${getProxiedImageUrl(user?.photoURL || '')})` }}
             ></div>
           </div>
         </div>
