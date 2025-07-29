@@ -1,0 +1,35 @@
+name: Deploy to Firebase App Hosting
+
+on:
+  push:
+    branches:
+      - main # Dispara el workflow en cada push a la rama 'main'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # Ejecuta el job en una máquina virtual Linux
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Asegúrate que esta sea la versión de Node.js de tu Next.js (la que elegiste en create-next-app)
+
+      - name: Install dependencies
+        run: npm ci # Usa 'npm ci' para instalaciones limpias en CI/CD
+        working-directory: app-frontend # Ahora apunta a la subcarpeta de Next.js
+
+      - name: Build Next.js app
+        run: npm run build
+        working-directory: app-frontend # Ahora apunta a la subcarpeta de Next.js
+
+      - name: Deploy to Firebase App Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0 # Acción oficial de Firebase para Hosting
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          channelId: live # Despliega a tu canal 'live'

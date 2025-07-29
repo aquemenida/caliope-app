@@ -1,0 +1,118 @@
+/* Estilos CSS para la prueba de Caliope App IA */
+body {
+    font-family: 'Manrope', "Noto Sans", sans-serif; /* Usando Manrope como fuente base */
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f4f8; /* Fondo suave */
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Alinea al inicio para dejar espacio arriba */
+    min-height: 100vh; /* Altura mínima para ocupar toda la vista */
+    box-sizing: border-box; /* Incluye padding en el tamaño total */
+}
+.main-content {
+    max-width: 600px;
+    width: 100%;
+    padding: 25px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15); /* Sombra más pronunciada */
+    box-sizing: border-box;
+}
+h1 {
+    color: #1D3557; /* Azul profundo de Caliope */
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 2.2em;
+    font-weight: 700; /* Negrita para el título */
+}
+textarea {
+    width: calc(100% - 22px); /* Ajuste para padding y borde */
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 2px solid #A8DADC; /* Borde más visible */
+    border-radius: 10px; /* Más redondeado */
+    font-size: 1.05em;
+    min-height: 120px; /* Altura mínima */
+    resize: vertical;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
+textarea:focus {
+    border-color: #008e31; /* Verde de Caliope al enfocar */
+    outline: none;
+}
+button {
+    background-color: #A8DADC; /* Verde suave de Caliope */
+    color: #1D3557; /* Texto en azul profundo */
+    padding: 14px 30px;
+    border: none;
+    border-radius: 10px; /* Más redondeado */
+    font-size: 1.15em;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+button:hover {
+    background-color: #008e31; /* Verde más oscuro de Caliope al hover */
+    color: white; /* Texto blanco al hover */
+    transform: translateY(-2px); /* Efecto sutil de elevación */
+}
+#recommendations-output {
+    margin-top: 30px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    background-color: #f9f9f9;
+    min-height: 150px;
+    box-sizing: border-box;
+}
+#recommendations-output h2 {
+    color: #1D3557;
+    margin-top: 0;
+    margin-bottom: 18px;
+    font-size: 1.6em;
+    text-align: center;
+}
+.recommendation-card {
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 15px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease;
+}
+.recommendation-card:hover {
+    transform: translateY(-3px);
+}
+.recommendation-card h3 {
+    color: #1D3557;
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+.recommendation-card p {
+    font-size: 0.95em;
+    color: #555;
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+.recommendation-card .points {
+    font-weight: bold;
+    color: #008e31;
+    font-size: 1.05em;
+    margin-top: 10px;
+    display: block;
+}
+.loading-indicator {
+    text-align: center;
+    font-style: italic;
+    color: #888;
+    padding: 20px;
+    font-size: 1.1em;
+}
