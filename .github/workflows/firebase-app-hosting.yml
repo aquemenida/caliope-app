@@ -8,6 +8,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest # Ejecuta el job en una máquina virtual Linux
+    permissions:
+      contents: 'read'
+      id-token: 'write' # ¡Importante para Workload Identity Federation!
 
     steps:
       - name: Checkout code
@@ -26,10 +29,17 @@ jobs:
         run: npm run build
         working-directory: app-frontend # Ahora apunta a la subcarpeta de Next.js
 
-      - name: Deploy to Firebase App Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0 # Acción oficial de Firebase para Hosting
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
-          channelId: live # Despliega a tu canal 'live'
+          workload_identity_provider: projects/856567522150/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-actions-sa@caliope-app-3.iam.gserviceaccount.com
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase App Hosting
+        run: firebase deploy --only hosting --project=caliope-app-3
+        # Ya no necesitas repoToken, firebaseServiceAccount, ni projectId aquí
+        # porque la autenticación se maneja con Workload Identity Federation
