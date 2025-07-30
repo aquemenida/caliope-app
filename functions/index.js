@@ -11,6 +11,7 @@ exports.generateCaliopeRecommendations = functions.https.onCall(async (data, con
   const prompt = data.prompt;
 
   // Log the received prompt for debugging.
+  console.log("Received data object:", data);
   console.log("Received prompt:", prompt);
 
   if (!prompt || typeof prompt !== 'string') {
