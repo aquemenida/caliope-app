@@ -1,1 +1,1 @@
-feat: Implement basic Next.js frontend with AI recommendations
+Initial project setup with Firebase and Next.js
