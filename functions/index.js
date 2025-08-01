@@ -1,30 +1,31 @@
 // Trigger re-deployment
-const functions = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onRequest } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const axios = require("axios");
 
-// Use environment variables for the API key
-const geminiApiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(geminiApiKey);
+// Define the secret using defineSecret
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
-exports.generateCaliopeRecommendations = functions.https.onCall(async (data, context) => {
-  const prompt = data.prompt;
+const cors = require("cors")({ origin: true });
 
-  // Log the received prompt for debugging.
-  console.log("Received prompt:", prompt);
+exports.generateRecommendations = onCall({ secrets: [geminiApiKey] }, async (request) => {
+  // Access the secret's value
+  const genAI = new GoogleGenerativeAI(geminiApiKey.value());
+
+  const prompt = request.data.prompt;
 
   if (!prompt || typeof prompt !== 'string') {
-    console.error("Invalid or missing prompt:", prompt);
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "The function must be called with a non-empty 'prompt' string."
     );
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   try {
-    // Pass the prompt string directly to generateContent.
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -32,27 +33,29 @@ exports.generateCaliopeRecommendations = functions.https.onCall(async (data, con
     return { recommendations: text };
   } catch (error) {
     console.error("Error generating content:", error);
-    throw new functions.https.HttpsError("internal", "Error generating recommendations.");
+    throw new HttpsError("internal", "Error generating recommendations.");
   }
 });
 
-exports.imageProxy = functions.https.onRequest(async (req, res) => {
-  const imageUrl = req.query.url;
+exports.imageProxy = onRequest(async (req, res) => {
+  cors(req, res, async () => {
+    const imageUrl = req.query.url;
 
-  if (!imageUrl) {
-    res.status(400).send("Missing image URL");
-    return;
-  }
+    if (!imageUrl) {
+      res.status(400).send("Missing image URL");
+      return;
+    }
 
-  try {
-    const response = await axios.get(imageUrl, {
-      responseType: "stream",
-    });
+    try {
+      const response = await axios.get(imageUrl, {
+        responseType: "stream",
+      });
 
-    res.setHeader("Content-Type", response.headers["content-type"]);
-    response.data.pipe(res);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    res.status(500).send("Error fetching image");
-  }
+      res.setHeader("Content-Type", response.headers["content-type"]);
+      response.data.pipe(res);
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      res.status(500).send("Error fetching image");
+    }
+  });
 });
