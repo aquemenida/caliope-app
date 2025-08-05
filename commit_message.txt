@@ -1,1 +1,1 @@
-Fix: Configurar Next.js para exportación estática
+Fix: Apuntar hosting a la carpeta de salida estática
