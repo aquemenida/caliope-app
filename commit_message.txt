@@ -1,1 +1,1 @@
-Fix: Añadir assetPrefix y eliminar archivo anómalo
+Feat: Diseñar la página de bienvenida
