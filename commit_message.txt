@@ -1,1 +1,1 @@
-Fix: Apuntar hosting a la carpeta de salida estática
+Fix: Habilitar cleanUrls para el hosting de Firebase
