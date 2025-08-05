@@ -1,1 +1,1 @@
-Initial project setup with Firebase and Next.js
+Fix: Corregir firebase.json y actualizar landing page
