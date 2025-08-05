@@ -1,1 +1,1 @@
-Fix: Habilitar cleanUrls para el hosting de Firebase
+Fix: Añadir assetPrefix y eliminar archivo anómalo
