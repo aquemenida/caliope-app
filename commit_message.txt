@@ -1,1 +1,1 @@
-Fix: Corregir firebase.json y actualizar landing page
+Fix: Configurar Next.js para exportación estática
