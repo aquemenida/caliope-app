@@ -1,1 +1,1 @@
-Feat: Diseñar la página de bienvenida
+Feat: Integrar frontend con Cloud Function de recomendaciones

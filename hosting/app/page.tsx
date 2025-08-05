@@ -15,6 +15,7 @@ export default function Page() {
     setRecommendations([]); // Clear previous recommendations
 
     try {
+      console.log("Enviando preferencia de usuario:", userPreference);
       const result = await generateCaliopeRecommendations({ preference: userPreference });
       const data = result.data as GenerateRecommendationsResponse; // Type assertion
 
