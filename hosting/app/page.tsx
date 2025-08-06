@@ -6,6 +6,7 @@ import { generateCaliopeRecommendations, GenerateRecommendationsResponse } from 
 export default function Page() {
   const [userPreference, setUserPreference] = useState('');
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [conversationalMessage, setConversationalMessage] = useState<string | null>(null); // New state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,16 +14,26 @@ export default function Page() {
     setLoading(true);
     setError(null);
     setRecommendations([]); // Clear previous recommendations
+    setConversationalMessage(null); // Clear previous message
 
     try {
       console.log("Enviando preferencia de usuario:", userPreference);
       const result = await generateCaliopeRecommendations({ preference: userPreference });
-      const data = result.data as GenerateRecommendationsResponse; // Type assertion
+      console.log("Cloud Function raw result:", result); // Añadido para depuración
+      const data = result.data as any; // Use 'any' for now to handle both types of responses
 
       if (data && data.success) {
-        setRecommendations(data.recommendations);
+        if (data.message) {
+          setConversationalMessage(data.message);
+          setRecommendations([]); // Ensure recommendations are cleared if a message is received
+        } else if (data.recommendations) {
+          setRecommendations(data.recommendations);
+          setConversationalMessage(null); // Ensure message is cleared if recommendations are received
+        } else {
+          setError('Respuesta inesperada de la función de Cloud.');
+        }
       } else {
-        setError('No se pudieron obtener recomendaciones. Inténtalo de nuevo.');
+        setError(data.message || 'No se pudieron obtener recomendaciones. Inténtalo de nuevo.');
       }
     } catch (err: any) {
       console.error("Error calling Cloud Function:", err);
@@ -55,6 +66,10 @@ export default function Page() {
       </div>
 
       {error && <p style={styles.errorText}>{error}</p>}
+
+      {conversationalMessage && (
+        <p style={styles.conversationalMessage}>{conversationalMessage}</p>
+      )}
 
       {recommendations.length > 0 && (
         <div style={styles.recommendationsContainer}>
@@ -159,5 +174,11 @@ const styles = {
     fontSize: '22px',
     color: '#007bff',
     marginBottom: '10px',
+  },
+  conversationalMessage: {
+    fontSize: '18px',
+    color: '#007bff',
+    marginTop: '20px',
+    textAlign: 'center' as 'center',
   },
 };

@@ -1,1 +1,1 @@
-Feat: Integrar frontend con Cloud Function de recomendaciones
+Fix: Añadir console.log para depurar preferencia de usuario

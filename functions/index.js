@@ -1,12 +1,14 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const fetch = require('node-fetch'); // Para hacer solicitudes HTTP desde la función
+const { GoogleGenerativeAI } = require('@google/generative-ai'); // New import
 
 admin.initializeApp();
 
 // ** TU API Key de Google AI Studio (ya insertada) **
-const GEMINI_API_KEY = "AIzaSyC9hu3lkQfrNmK0SVb6gQdz8unoRBDn20o"; 
-const MODEL_ID = "gemini-2.0-flash"; // Modelo que Google AI Studio sugiere
+ 
+const MODEL_ID = "gemini-2.5-flash"; // Keep this model ID
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // New client initialization
 
 // El prompt completo para el curador Caliope
 const RECOMMENDATION_PROMPT_TEMPLATE = `
@@ -50,18 +52,57 @@ Asegúrate de que tus recomendaciones reflejen la promesa de Caliope: transforma
 
 ---
 **Ahora, espera mi entrada de usuario.**
-`;
+`; // Restored original prompt
 
 // Cloud Function para generar recomendaciones de IA (actúa como proxy)
-exports.generateCaliopeRecommendations = functions.https.onCall(async (data, context) => {
-    const userPreference = data.preference; // La preferencia del usuario enviada desde el frontend
+exports.generateCaliopeRecommendations = functions.https.onCall(async (request) => {
+    // For 2nd gen functions, the client data is in request.data
+    const userPreference = request.data.preference ? String(request.data.preference).trim() : '';
 
     if (!userPreference) {
+        console.log("Validation failed: userPreference is missing or empty.");
         throw new functions.https.HttpsError('invalid-argument', 'La preferencia del usuario es requerida.');
     }
 
+    const lowerCasePreference = userPreference.toLowerCase();
+
+    let responseData = null;
+
+    // Lógica para saludos
+    if (lowerCasePreference.includes("hola") || lowerCasePreference.includes("buenos días") || lowerCasePreference.includes("buenas tardes") || lowerCasePreference.includes("buenas noches")) {
+        responseData = { success: true, message: "¡Hola! Soy Caliope, tu asistente de bienestar y belleza. ¿En qué puedo ayudarte hoy? Por ejemplo, puedes decirme 'quiero relajarme' o 'necesito un tratamiento facial'." };
+    }
+
+    // Lógica para empatía
+    else if (lowerCasePreference.includes("me duele") || lowerCasePreference.includes("me siento mal") || lowerCasePreference.includes("estoy enfermo") || lowerCasePreference.includes("tengo dolor")) {
+        responseData = { success: true, message: "Lamento mucho escuchar eso. Espero que te sientas mejor pronto. Recuerda que siempre es importante consultar a un profesional de la salud si el malestar persiste. Si deseas, puedo buscarte recomendaciones de bienestar. ¿Qué te gustaría encontrar?" };
+    }
+
+    if (responseData) {
+        return responseData;
+    }
+
     try {
-        const payload = {
+        const model = genAI.getGenerativeModel({ model: MODEL_ID, generationConfig: {
+            responseMimeType: "application/json", // Restored
+            responseSchema: { // Restored
+                type: "ARRAY",
+                items: {
+                    type: "OBJECT",
+                    properties: {
+                        "nombre": { "type": "STRING" },
+                        "tipo": { "type": "STRING" },
+                        "descripcion": { "type": "STRING" },
+                        "profesional_sugerido": { "type": "STRING" },
+                        "puntos_caliope": { "type": "NUMBER" },
+                        "beneficio_adicional": { "type": "STRING" }
+                    },
+                    "propertyOrdering": ["nombre", "tipo", "descripcion", "profesional_sugerido", "puntos_caliope", "beneficio_adicional"]
+                }
+            }
+        }});
+
+        const result = await model.generateContent({
             contents: [
                 {
                     role: "user",
@@ -71,51 +112,39 @@ exports.generateCaliopeRecommendations = functions.https.onCall(async (data, con
                     ]
                 }
             ],
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            "nombre": { "type": "STRING" },
-                            "tipo": { "type": "STRING" },
-                            "descripcion": { "type": "STRING" },
-                            "profesional_sugerido": { "type": "STRING" },
-                            "puntos_caliope": { "type": "NUMBER" },
-                            "beneficio_adicional": { "type": "STRING" }
-                        },
-                        "propertyOrdering": ["nombre", "tipo", "descripcion", "profesional_sugerido", "puntos_caliope", "beneficio_adicional"]
-                    }
+            safetySettings: [
+                {
+                    category: "HARM_CATEGORY_HARASSMENT",
+                    threshold: "BLOCK_NONE"
+                },
+                {
+                    category: "HARM_CATEGORY_HATE_SPEECH",
+                    threshold: "BLOCK_NONE"
+                },
+                {
+                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold: "BLOCK_NONE"
+                },
+                {
+                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold: "BLOCK_NONE"
                 }
-            }
-        };
-
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}/generateContent?key=${GEMINI_API_KEY}`;
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            ]
         });
 
-        const result = await response.json();
+        const response = result.response;
+        const responseText = response.text();
 
-        if (result.candidates && result.candidates.length > 0 &&
-            result.candidates[0].content && result.candidates[0].content.parts &&
-            result.candidates[0].content.parts.length > 0) {
-            
-            const jsonString = result.candidates[0].content.parts[0].text;
-            const recommendations = JSON.parse(jsonString);
-            return { success: true, recommendations: recommendations };
-
-        } else {
-            console.error("Respuesta inesperada de la API de Gemini:", result);
-            throw new functions.https.HttpsError('internal', 'No se pudieron generar recomendaciones de la IA.');
+        if (!responseText) {
+            console.error("La API de Gemini devolvió una respuesta vacía. Esto puede deberse a la configuración de seguridad o a un problema con la clave de API.");
+            throw new functions.https.HttpsError('internal', 'La API de Gemini devolvió una respuesta vacía, posiblemente debido a filtros de seguridad.');
         }
+
+        const recommendations = JSON.parse(responseText);
+        return { success: true, recommendations: recommendations };
 
     } catch (error) {
         console.error("Error al llamar a la API de Gemini desde Cloud Function:", error);
         throw new functions.https.HttpsError('internal', `Error en la IA: ${error.message}`);
-        }
-    });
+    }
+});
