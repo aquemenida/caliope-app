@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci # Usa 'npm ci' para instalaciones limpias en CI/CD
-        working-directory: app-frontend # Ahora apunta a la subcarpeta de Next.js
+        working-directory: hosting # Ahora apunta a la subcarpeta de Next.js
 
       - name: Build Next.js app
         run: npm run build
