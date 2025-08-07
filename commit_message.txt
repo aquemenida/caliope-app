@@ -1,1 +1,0 @@
-Fix: Añadir console.log para depurar preferencia de usuario
