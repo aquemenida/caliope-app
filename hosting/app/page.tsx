@@ -1,184 +1,126 @@
-"use client";
+'use client'; // Indica que este componente es un Client Component en Next.js App Router
 
-import { useState } from 'react';
-import { generateCaliopeRecommendations, GenerateRecommendationsResponse } from './firebaseConfig';
+import React, { useState } from 'react';
 
-export default function Page() {
-  const [userPreference, setUserPreference] = useState('');
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [conversationalMessage, setConversationalMessage] = useState<string | null>(null); // New state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// Importa los módulos necesarios de Firebase
+import { initializeApp, getApps } from 'firebase/app';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
-  const handleGenerateRecommendations = async () => {
-    setLoading(true);
-    setError(null);
-    setRecommendations([]); // Clear previous recommendations
-    setConversationalMessage(null); // Clear previous message
+// ** CONFIGURACIÓN DE FIREBASE PARA TU PROYECTO CALIOPE **
+// Este objeto 'firebaseConfig' ha sido copiado directamente desde la Consola de Firebase.
+const firebaseConfig = {
+    apiKey: "AIzaSyAplYSnqpNilAVVGsnJcliLcXrDvcQQPrU",
+    authDomain: "caliope-app-3.firebaseapp.com",
+    projectId: "caliope-app-3",
+    storageBucket: "caliope-app-3.appspot.com",
+    messagingSenderId: "832855515589",
+    appId: "1:832855515589:web:d59aa0aace2bafa081ebac",
+    measurementId: "G-4YCJZXK5YE"
+};
 
-    try {
-      console.log("Enviando preferencia de usuario:", userPreference);
-      const result = await generateCaliopeRecommendations({ preference: userPreference });
-      console.log("Cloud Function raw result:", result); // Añadido para depuración
-      const data = result.data as any; // Use 'any' for now to handle both types of responses
+// Inicializa Firebase (solo si no ha sido inicializado ya)
+let app;
+if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+} else {
+    app = getApps()[0];
+}
+const functions = getFunctions(app); // Servicio de Cloud Functions
 
-      if (data && data.success) {
-        if (data.message) {
-          setConversationalMessage(data.message);
-          setRecommendations([]); // Ensure recommendations are cleared if a message is received
-        } else if (data.recommendations) {
-          setRecommendations(data.recommendations);
-          setConversationalMessage(null); // Ensure message is cleared if recommendations are received
-        } else {
-          setError('Respuesta inesperada de la función de Cloud.');
-        }
-      } else {
-        setError(data.message || 'No se pudieron obtener recomendaciones. Inténtalo de nuevo.');
-      }
-    } catch (err: any) {
-      console.error("Error calling Cloud Function:", err);
-      setError(`Error: ${err.message || 'Algo salió mal.'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>Bienvenido a Caliope</h1>
-      <p style={styles.subtitle}>Tu asistente de desarrollo inteligente</p>
-
-      <div style={styles.inputContainer}>
-        <textarea
-          style={styles.textarea}
-          placeholder="Describe tu necesidad de bienestar o belleza (ej: 'Quiero relajarme después del trabajo y mejorar el aspecto de mi piel cansada.')"
-          value={userPreference}
-          onChange={(e) => setUserPreference(e.target.value)}
-          rows={4}
-        />
-        <button
-          style={styles.button}
-          onClick={handleGenerateRecommendations}
-          disabled={loading || !userPreference.trim()}
-        >
-          {loading ? 'Generando...' : 'Generar Recomendaciones'}
-        </button>
-      </div>
-
-      {error && <p style={styles.errorText}>{error}</p>}
-
-      {conversationalMessage && (
-        <p style={styles.conversationalMessage}>{conversationalMessage}</p>
-      )}
-
-      {recommendations.length > 0 && (
-        <div style={styles.recommendationsContainer}>
-          <h2 style={styles.recommendationsTitle}>Nuestras Recomendaciones para Ti:</h2>
-          {recommendations.map((rec, index) => (
-            <div key={index} style={styles.recommendationCard}>
-              <h3 style={styles.cardTitle}>{rec.nombre}</h3>
-              <p><strong>Tipo:</strong> {rec.tipo}</p>
-              <p><strong>Descripción:</strong> {rec.descripcion}</p>
-              <p><strong>Profesional/Clínica:</strong> {rec.profesional_sugerido}</p>
-              <p><strong>Puntos Caliope:</strong> {rec.puntos_caliope}</p>
-              {rec.beneficio_adicional && <p><strong>Beneficio Adicional:</strong> {rec.beneficio_adicional}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+interface Recommendation {
+    nombre: string;
+    tipo: string;
+    descripcion: string;
+    profesional_sugerido: string;
+    puntos_caliope: number;
+    beneficio_adicional?: string;
 }
 
-const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column' as 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh', // Use minHeight to allow content to expand
-    backgroundColor: '#f0f2f5',
-    fontFamily: 'Arial, sans-serif',
-    padding: '20px', // Add some padding
-    boxSizing: 'border-box' as 'border-box', // Ensure padding is included in width/height
-  },
-  title: {
-    fontSize: '48px',
-    color: '#333',
-    marginBottom: '16px',
-    textAlign: 'center' as 'center',
-  },
-  subtitle: {
-    fontSize: '24px',
-    color: '#666',
-    marginBottom: '32px',
-    textAlign: 'center' as 'center',
-  },
-  inputContainer: {
-    display: 'flex',
-    flexDirection: 'column' as 'column',
-    width: '80%',
-    maxWidth: '600px',
-    marginBottom: '32px',
-    gap: '15px', // Space between textarea and button
-  },
-  textarea: {
-    width: '100%',
-    padding: '15px',
-    fontSize: '16px',
-    borderRadius: '8px',
-    border: '1px solid #ccc',
-    boxSizing: 'border-box' as 'border-box',
-    resize: 'vertical' as 'vertical', // Allow vertical resizing
-  },
-  button: {
-    padding: '12px 24px',
-    fontSize: '18px',
-    color: '#fff',
-    backgroundColor: '#007bff',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s ease',
-  },
-  errorText: {
-    color: 'red',
-    marginTop: '10px',
-    fontSize: '16px',
-    textAlign: 'center' as 'center',
-  },
-  recommendationsContainer: {
-    width: '80%',
-    maxWidth: '800px',
-    marginTop: '30px',
-    backgroundColor: '#fff',
-    borderRadius: '10px',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-    padding: '25px',
-  },
-  recommendationsTitle: {
-    fontSize: '28px',
-    color: '#333',
-    marginBottom: '20px',
-    textAlign: 'center' as 'center',
-  },
-  recommendationCard: {
-    border: '1px solid #eee',
-    borderRadius: '8px',
-    padding: '20px',
-    marginBottom: '15px',
-    backgroundColor: '#f9f9f9',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-  },
-  cardTitle: {
-    fontSize: '22px',
-    color: '#007bff',
-    marginBottom: '10px',
-  },
-  conversationalMessage: {
-    fontSize: '18px',
-    color: '#007bff',
-    marginTop: '20px',
-    textAlign: 'center' as 'center',
-  },
-};
+export default function Home() {
+    const [userPreference, setUserPreference] = useState<string>('');
+    const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleGenerateRecommendation = async () => {
+        if (!userPreference.trim()) {
+            setError('Por favor, describe tu necesidad.');
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setRecommendations([]);
+
+        try {
+            // Llama a tu Cloud Function desplegada 'generateCaliopeRecommendations'
+            const generateRecommendationsCallable = httpsCallable(functions, 'generateCaliopeRecommendations');
+            
+            // Envía la preferencia del usuario a la Cloud Function
+            const result = await generateRecommendationsCallable({ preference: userPreference });
+
+            // Verifica la respuesta de la Cloud Function
+            if (result.data && (result.data as any).success) { // Usamos 'as any' para acceder a 'success'
+                setRecommendations((result.data as any).recommendations);
+            } else {
+                setError('Error: No se pudieron generar recomendaciones. Intenta de nuevo.');
+                console.error("Respuesta inesperada de la Cloud Function:", result);
+            }
+
+        } catch (err: any) { // Captura el error para tipado
+            setError(`Ocurrió un error: ${err.message}. Asegúrate de que la Cloud Function esté desplegada y configurada correctamente.`);
+            console.error("Error al llamar a la Cloud Function:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#f0f4f8] text-[#333] flex justify-center items-start p-5 box-border font-manrope">
+            <div className="max-w-xl w-full p-6 bg-white rounded-xl shadow-lg box-border">
+                <h1 className="text-[#1D3557] text-center mb-6 text-3xl font-bold">Recomendaciones Caliope</h1>
+                <textarea
+                    id="user-preference-input"
+                    placeholder="Describe tu necesidad de bienestar o belleza (ej. quiero relajarme, mejorar mi piel, sentirme más seguro/a)"
+                    className="w-full p-3 mb-5 border-2 border-[#A8DADC] rounded-lg text-base min-h-32 resize-y focus:border-[#008e31] focus:outline-none"
+                    value={userPreference}
+                    onChange={(e) => setUserPreference(e.target.value)}
+                ></textarea>
+                <button
+                    id="generate-recommendation-btn"
+                    className="bg-[#A8DADC] text-[#1D3557] py-3 px-6 border-none rounded-lg text-lg font-semibold cursor-pointer w-full transition-all duration-300 ease-in-out shadow-md hover:bg-[#008e31] hover:text-white hover:translate-y-[-2px]"
+                    onClick={handleGenerateRecommendation}
+                    disabled={loading}
+                >
+                    {loading ? 'Generando...' : 'Generar Recomendación'}
+                </button>
+
+                <div id="recommendations-output" className="mt-8 p-5 border border-[#e0e0e0] rounded-xl bg-[#f9f9f9] min-h-40 box-border">
+                    <h2 className="text-[#1D3557] mt-0 mb-4 text-2xl text-center">Tus Recomendaciones Personalizadas:</h2>
+                    {loading && <p className="loading-indicator">Generando recomendaciones... Esto puede tardar unos segundos.</p>}
+                    {error && <p className="text-red-500 text-center">{error}</p>}
+                    {!loading && !error && recommendations.length === 0 && (
+                        <div className="flex flex-col items-center gap-6">
+                            <div
+                                className="bg-center bg-no-repeat aspect-video bg-cover rounded-xl w-full max-w-[360px]"
+                                style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAnXI4evedn7umLJDnu9ZOrwK_C7mMHuwN-fbL4rnQ4UnEzVqrUd7DVrvjIzzt3z4xEcyEn3eUewGSKqXCThXjqPY0Gyjubm54J8j3w9yPbjLEj4fbCSgMy0HMMngRW9jqTnbWG7ArSleTc0E8yUsmGZu-10TOVXnSQlxf5NytgRtRPVs2GShYpqWEUGznB0dLnt2dJG9DLl3FS3qwkf1dc_qsSKQ3esEtPcXDHVkQu9ZTGXZoRF2wiiP6iFEkJH9QKKoaUyMoOxZY")' }}
+                            ></div>
+                            <p className="text-[#0e181b] text-lg font-bold leading-tight tracking-[-0.015em] max-w-[480px] text-center">Aún no hay recomendaciones</p>
+                            <p className="text-[#0e181b] text-sm font-normal leading-normal max-w-[480px] text-center">Describe tu necesidad para generar recomendaciones personalizadas.</p>
+                        </div>
+                    )}
+                    {!loading && recommendations.length > 0 && recommendations.map((rec, index) => (
+                        <div key={index} className="recommendation-card">
+                            <h3 className="text-[#1D3557] mt-0 mb-2 text-xl font-semibold">{rec.nombre}</h3>
+                            <p className="text-base text-[#555] mb-1 leading-relaxed"><strong>Tipo:</strong> {rec.tipo}</p>
+                            <p className="text-base text-[#555] mb-1 leading-relaxed">{rec.descripcion}</p>
+                            <p className="text-base text-[#555] mb-1 leading-relaxed"><strong>Profesional/Clínica:</strong> {rec.profesional_sugerido}</p>
+                            <p className="font-bold text-[#008e31] text-base mt-2 block"><strong>Puntos Caliope:</strong> {rec.puntos_caliope}</p>
+                            {rec.beneficio_adicional && <p className="text-base text-[#555] mb-1 leading-relaxed"><strong>Beneficio Adicional:</strong> {rec.beneficio_adicional}</p>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
