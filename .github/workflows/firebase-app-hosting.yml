@@ -27,7 +27,7 @@ jobs:
 
       - name: Build Next.js app
         run: npm run build
-        working-directory: app-frontend # Ahora apunta a la subcarpeta de Next.js
+        working-directory: hosting # Ahora apunta a la subcarpeta de Next.js
 
       - name: Authenticate to Google Cloud
         id: auth
