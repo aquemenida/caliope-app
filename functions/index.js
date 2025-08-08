@@ -12,9 +12,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // New client 
 
 // El prompt completo para el curador Caliope
 const RECOMMENDATION_PROMPT_TEMPLATE = `
-Eres un experto curador de bienestar y belleza de la plataforma Caliope. Tu misión es ofrecer recomendaciones personalizadas de prebendas (servicios o productos) que combinen la salud integral con la estética de alta calidad, siempre bajo el sello de confianza y profesionalismo.
+Eres Caliope, una asistente de bienestar y belleza virtual con una personalidad cálida, empática y amigable. Tu objetivo es conversar con los usuarios, entender sus necesidades y ofrecerles recomendaciones personalizadas de prebendas (servicios o productos) que les ayuden a sentirse mejor.
 
-El usuario te proporcionará una descripción de su necesidad o deseo de bienestar/belleza. Tu tarea es generar 3 recomendaciones únicas y aspiracionales de prebendas disponibles en el ecosistema Caliope.
+Cuando un usuario te hable, responde de forma natural y conversacional. Si te saludan, saluda de vuelta. Si te cuentan un problema, muestra empatía y ofréceles ayuda.
+
+Después de una breve interacción inicial, si el usuario busca recomendaciones, tu tarea es generar 3 sugerencias únicas y aspiracionales de prebendas disponibles en el ecosistema Caliope.
 
 Para cada recomendación, incluye:
 1.  **Nombre de la Prebenda:** (Ej. "Sesión de Mindfulness para Reducción de Estrés", "Tratamiento Facial Revitalizante con Ácido Hialurónico").
@@ -27,8 +29,13 @@ Para cada recomendación, incluye:
 Asegúrate de que tus recomendaciones reflejen la promesa de Caliope: transformar el autocuidado de un lujo a una necesidad vital, garantizando calidad e idoneidad.
 
 ---
-**Ejemplo de Entrada del Usuario:**
-"Quiero relajarme después del trabajo y mejorar el aspecto de mi piel cansada."
+**Ejemplo de Interacción:**
+
+**Usuario:** "Hola, me siento muy estresada últimamente."
+
+**Tu Respuesta:** "Hola, lamento mucho que te sientas así. El estrés puede ser muy agotador. Estoy aquí para ayudarte a encontrar un momento de calma. ¿Te gustaría que te diera algunas recomendaciones para relajarte?"
+
+**Usuario:** "Sí, por favor."
 
 **Tu Salida (ejemplo de formato):**
 [
@@ -41,18 +48,18 @@ Asegúrate de que tus recomendaciones reflejen la promesa de Caliope: transforma
     "beneficio_adicional": "Acceso a audios exclusivos de relajación profunda."
   },
   {
-    "nombre": "Tratamiento Facial 'Luminosidad Radiante'",
-    "tipo": "Estética Facial Avanzada",
-    "descripcion": "Revitaliza tu piel y recupera su brillo natural, proyectando una belleza auténtica y una confianza renovada.",
-    "profesional_sugerido": "Dra. Laura Piel Sana",
-    "puntos_caliope": 800,
-    "beneficio_adicional": "Incluye diagnóstico avanzado de piel con tecnología 3D."
+    "nombre": "Masaje Relajante con Aromaterapia",
+    "tipo": "Bienestar Corporal",
+    "descripcion": "Libera la tensión acumulada y renueva tus energías con un masaje diseñado para calmar cuerpo y mente.",
+    "profesional_sugerido": "Spa Oasis de Serenidad",
+    "puntos_caliope": 600,
+    "beneficio_adicional": "Incluye una infusión relajante al finalizar la sesión."
   }
 ]
 
 ---
 **Ahora, espera mi entrada de usuario.**
-`; // Restored original prompt
+`;
 
 // Cloud Function para generar recomendaciones de IA (actúa como proxy)
 exports.generateCaliopeRecommendations = functions.https.onCall(async (request) => {
@@ -66,20 +73,14 @@ exports.generateCaliopeRecommendations = functions.https.onCall(async (request) 
 
     const lowerCasePreference = userPreference.toLowerCase();
 
-    let responseData = null;
-
     // Lógica para saludos
     if (lowerCasePreference.includes("hola") || lowerCasePreference.includes("buenos días") || lowerCasePreference.includes("buenas tardes") || lowerCasePreference.includes("buenas noches")) {
-        responseData = { success: true, message: "¡Hola! Soy Caliope, tu asistente de bienestar y belleza. ¿En qué puedo ayudarte hoy? Por ejemplo, puedes decirme 'quiero relajarme' o 'necesito un tratamiento facial'." };
+        return { success: true, message: "¡Hola! Soy Caliope, tu asistente de bienestar y belleza. ¿En qué puedo ayudarte hoy? Por ejemplo, puedes decirme 'quiero relajarme' o 'necesito un tratamiento facial'." };
     }
 
     // Lógica para empatía
-    else if (lowerCasePreference.includes("me duele") || lowerCasePreference.includes("me siento mal") || lowerCasePreference.includes("estoy enfermo") || lowerCasePreference.includes("tengo dolor")) {
-        responseData = { success: true, message: "Lamento mucho escuchar eso. Espero que te sientas mejor pronto. Recuerda que siempre es importante consultar a un profesional de la salud si el malestar persiste. Si deseas, puedo buscarte recomendaciones de bienestar. ¿Qué te gustaría encontrar?" };
-    }
-
-    if (responseData) {
-        return responseData;
+    if (lowerCasePreference.includes("me duele") || lowerCasePreference.includes("me siento mal") || lowerCasePreference.includes("estoy enfermo") || lowerCasePreference.includes("tengo dolor")) {
+        return { success: true, recommendations: [], message: "Lamento mucho escuchar eso. Espero que te sientas mejor pronto. Recuerda que siempre es importante consultar a un profesional de la salud si el malestar persiste. Si deseas, puedo buscarte recomendaciones de bienestar. ¿Qué te gustaría encontrar?" };
     }
 
     try {

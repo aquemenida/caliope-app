@@ -55,7 +55,14 @@ generateBtn.addEventListener('click', async () => {
 
         // Verifica la respuesta de la Cloud Function
         if (result.data && result.data.success) {
-            displayRecommendations(result.data.recommendations);
+            if (result.data.message) {
+                outputDiv.innerHTML = `<p>${result.data.message}</p>`;
+            } else if (result.data.recommendations) {
+                displayRecommendations(result.data.recommendations);
+            } else {
+                outputDiv.innerHTML = '<p style="color: red;">Error: Respuesta inesperada de la Cloud Function.</p>';
+                console.error("Respuesta inesperada de la Cloud Function:", result);
+            }
         } else {
             outputDiv.innerHTML = '<p style="color: red;">Error: No se pudieron generar recomendaciones. Intenta de nuevo.</p>';
             console.error("Respuesta inesperada de la Cloud Function:", result);
@@ -69,8 +76,9 @@ generateBtn.addEventListener('click', async () => {
 
 // Función para mostrar las recomendaciones en la interfaz
 function displayRecommendations(recommendations) {
+    console.log("Recomendaciones recibidas:", recommendations);
     outputDiv.innerHTML = '<h2>Tus Recomendaciones Personalizadas:</h2>'; // Limpia el contenido anterior
-    if (recommendations.length === 0) {
+    if (!recommendations || recommendations.length === 0) {
         outputDiv.innerHTML += '<p>No se encontraron recomendaciones para tu preferencia.</p>';
         return;
     }
